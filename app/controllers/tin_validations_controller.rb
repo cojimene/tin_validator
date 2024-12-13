@@ -6,7 +6,8 @@ class TinValidationsController < ApplicationController
       valid: validator.valid?,
       tin_type: validator.type,
       formatted_tin: validator.formatted_number,
-      errors: [validator.errors]
+      errors: [validator.errors],
+      business_registration: validator.business_registration
     }
 
     render json: response, status: :ok

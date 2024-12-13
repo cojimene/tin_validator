@@ -1,5 +1,5 @@
 class TinValidator < ApplicationService
-  attr_reader :type, :formatted_number, :errors
+  attr_reader :type, :formatted_number, :errors, :business_registration
 
   ABN_WEIGHTS = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19].freeze
   ABN_MODULUS = 89
@@ -12,7 +12,7 @@ class TinValidator < ApplicationService
 
   def call
     check_number
-    @errors = 'invalid number' unless valid?
+    @errors ||= 'invalid number' unless valid?
     self
   end
 
@@ -24,13 +24,13 @@ class TinValidator < ApplicationService
 
   def check_number
     case @country
-    when 'AU' then check_au
-    when 'CA' then check_ca
-    when 'IN' then check_in
+    when 'AU' then check_australia
+    when 'CA' then check_canada
+    when 'IN' then check_india
     end
   end
 
-  def check_ca
+  def check_canada
     if tin_valid = @number.match(/\A(\d{9})(RT0001)?\z/)
       @formatted_number = "#{tin_valid[1]}RT0001"
       @valid = true
@@ -38,7 +38,7 @@ class TinValidator < ApplicationService
     end
   end
 
-  def check_au
+  def check_australia
     @valid = true
 
     if @number.match(/\A\d{9}\z/)
@@ -47,16 +47,14 @@ class TinValidator < ApplicationService
     elsif @number.match(/\A\d{3} \d{3} \d{3}\z/)
       @formatted_number = @number
       @type = 'au_acn'
-    elsif @number.match(/\A(\d{11}|\d{2} \d{3} \d{3} \d{3})\z/) && abn_format?
-      @number.gsub!(/\s+/, '')
-      @formatted_number = "#{@number[0..1]} #{@number[2..4]} #{@number[5..7]} #{@number[8..10]}"
-      @type = 'au_abn'
+    elsif @number.match(/\A(\d{11}|\d{2} \d{3} \d{3} \d{3})\z/)
+      validate_abn_from_external_server
     else
       @valid = false
     end
   end
 
-  def check_in
+  def check_india
     if @number.match(/\A\d{2}[0-9A-Z]{10}\d[A-Z]\d\z/)
       @formatted_number = @number
       @type = 'in_gst'
@@ -64,15 +62,17 @@ class TinValidator < ApplicationService
     end
   end
 
-  def abn_format?
-    number = "#{(@number[0].to_i - 1)}#{@number[1..]}" # rest 1 from the first digit
-    total = 0
+  def validate_abn_from_external_server
+    @number.gsub!(/\s+/, '')
+    validator = AbnExternalValidator.call(@number)
 
-    # sum the products digits*weigth
-    number.chars.each_with_index do |d, i|
-      total += d.to_i * ABN_WEIGHTS[i]
+    if validator.error
+      @errors = validator.error
+      @valid = false
+    else
+      @formatted_number = "#{@number[0..1]} #{@number[2..4]} #{@number[5..7]} #{@number[8..10]}"
+      @type = 'au_acn'
+      @business_registration = {name: validator.business_name, address: validator.business_address}
     end
-
-    (total % ABN_MODULUS) == 0
   end
 end

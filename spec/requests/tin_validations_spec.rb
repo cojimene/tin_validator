@@ -48,27 +48,45 @@ RSpec.describe 'TinValidations', type: :request do
     end
 
     context 'when is an ABN number' do
-      it 'responses valid with 10000000000' do
+      let(:abn_external) { instance_double(AbnExternalValidator) }
+      before { allow(AbnExternalValidator).to receive(:call).and_return(abn_external) }
+
+      it 'responses invalid with 10000000000' do
+        allow(abn_external).to receive(:error).and_return('business is not GST registered')
+
         post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10000000000'}}
 
-        expect(parsed_response['valid']).to eq(true)
-        expect(parsed_response['formatted_tin']).to eq('10 000 000 000')
-        expect(parsed_response['tin_type']).to eq('au_abn')
+        expect(parsed_response['valid']).to eq(false)
+        expect(parsed_response['errors']).to include('business is not GST registered')
       end
 
       it 'responses valid with 10120000004' do
+        allow(abn_external).to receive(:error).and_return(nil)
+        allow(abn_external).to receive(:business_address).and_return('Test address')
+        allow(abn_external).to receive(:business_name).and_return('Test name')
+
         post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10120000004'}}
 
         expect(parsed_response['valid']).to eq(true)
         expect(parsed_response['formatted_tin']).to eq('10 120 000 004')
-        expect(parsed_response['tin_type']).to eq('au_abn')
+        expect(parsed_response['business_registration']['name']).to include('Test name')
+        expect(parsed_response['business_registration']['address']).to eq('Test address')
       end
 
-      it 'responses errors with 10120000005' do
-        post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10120000005'}}
+      it 'responses errors with 53004085616' do
+        allow(abn_external).to receive(:error).and_return('registration API could not be reached')
+        post '/tin_validations', params: {tin_validation: {country: 'AU', number: '53004085616'}}
 
         expect(parsed_response['valid']).to eq(false)
-        expect(parsed_response['errors']).to include('invalid number')
+        expect(parsed_response['errors']).to include('registration API could not be reached')
+      end
+
+      it 'responses errors with 51824753556' do
+        allow(abn_external).to receive(:error).and_return('business is not registered')
+        post '/tin_validations', params: {tin_validation: {country: 'AU', number: '51824753556'}}
+
+        expect(parsed_response['valid']).to eq(false)
+        expect(parsed_response['errors']).to include('business is not registered')
       end
     end
 
