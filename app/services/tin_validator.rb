@@ -1,6 +1,9 @@
 class TinValidator < ApplicationService
   attr_reader :type, :formatted_number, :errors
 
+  ABN_WEIGHTS = [10, 1, 3, 5, 7, 9, 11, 13, 15, 17, 19].freeze
+  ABN_MODULUS = 89
+
   def initialize(country, number)
     @country = country
     @number = number.to_s
@@ -38,18 +41,16 @@ class TinValidator < ApplicationService
   def check_au
     @valid = true
 
-    if @number.match(/\A\d{11}\z/)
-      @formatted_number = "#{@number[0..1]} #{@number[2..4]} #{@number[5..7]} #{@number[8..10]}"
-      @type = 'au_abn'
-    elsif @number.match(/\A\d{9}\z/)
+    if @number.match(/\A\d{9}\z/)
       @formatted_number = "#{@number[0..2]} #{@number[3..5]} #{@number[6..8]}"
       @type = 'au_acn'
-    elsif @number.match(/\A\d{2} \d{3} \d{3} \d{3}\z/)
-      @formatted_number = @number
-      @type = 'au_abn'
     elsif @number.match(/\A\d{3} \d{3} \d{3}\z/)
       @formatted_number = @number
       @type = 'au_acn'
+    elsif @number.match(/\A(\d{11}|\d{2} \d{3} \d{3} \d{3})\z/) && abn_format?
+      @number.gsub!(/\s+/, '')
+      @formatted_number = "#{@number[0..1]} #{@number[2..4]} #{@number[5..7]} #{@number[8..10]}"
+      @type = 'au_abn'
     else
       @valid = false
     end
@@ -61,5 +62,17 @@ class TinValidator < ApplicationService
       @type = 'in_gst'
       @valid = true
     end
+  end
+
+  def abn_format?
+    number = "#{(@number[0].to_i - 1)}#{@number[1..]}" # rest 1 from the first digit
+    total = 0
+
+    # sum the products digits*weigth
+    number.chars.each_with_index do |d, i|
+      total += d.to_i * ABN_WEIGHTS[i]
+    end
+
+    (total % ABN_MODULUS) == 0
   end
 end

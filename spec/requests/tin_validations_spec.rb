@@ -31,22 +31,6 @@ RSpec.describe 'TinValidations', type: :request do
   end
 
   context 'when the country is Australia' do
-    it 'responses valid with a number like NNNNNNNNNNN' do
-      post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10120000004'}}
-
-      expect(parsed_response['valid']).to eq(true)
-      expect(parsed_response['formatted_tin']).to eq('10 120 000 004')
-      expect(parsed_response['tin_type']).to eq('au_abn')
-    end
-
-    it 'responses valid with a number like NN NNN NNN NNN' do
-      post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10 120 000 004'}}
-
-      expect(parsed_response['valid']).to eq(true)
-      expect(parsed_response['formatted_tin']).to eq('10 120 000 004')
-      expect(parsed_response['tin_type']).to eq('au_abn')
-    end
-
     it 'responses valid with a number like NNN NNN NNN' do
       post '/tin_validations', params: {tin_validation: {country: 'AU', number: '101 200 000'}}
 
@@ -63,7 +47,32 @@ RSpec.describe 'TinValidations', type: :request do
       expect(parsed_response['tin_type']).to eq('au_acn')
     end
 
-    it 'responses errors with any other format' do
+    context 'when is an ABN number' do
+      it 'responses valid with 10000000000' do
+        post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10000000000'}}
+
+        expect(parsed_response['valid']).to eq(true)
+        expect(parsed_response['formatted_tin']).to eq('10 000 000 000')
+        expect(parsed_response['tin_type']).to eq('au_abn')
+      end
+
+      it 'responses valid with 10120000004' do
+        post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10120000004'}}
+
+        expect(parsed_response['valid']).to eq(true)
+        expect(parsed_response['formatted_tin']).to eq('10 120 000 004')
+        expect(parsed_response['tin_type']).to eq('au_abn')
+      end
+
+      it 'responses errors with 10120000005' do
+        post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10120000005'}}
+
+        expect(parsed_response['valid']).to eq(false)
+        expect(parsed_response['errors']).to include('invalid number')
+      end
+    end
+
+    it 'responses errors with any other format not ABN' do
       post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10 120 0000 004'}}
 
       expect(parsed_response['valid']).to eq(false)
