@@ -69,6 +69,7 @@ RSpec.describe 'TinValidations', type: :request do
 
         expect(parsed_response['valid']).to eq(true)
         expect(parsed_response['formatted_tin']).to eq('10 120 000 004')
+        expect(parsed_response['tin_type']).to eq('au_abn')
         expect(parsed_response['business_registration']['name']).to include('Test name')
         expect(parsed_response['business_registration']['address']).to eq('Test address')
       end
