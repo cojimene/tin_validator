@@ -3,35 +3,24 @@
 ## Tax Identification Number Validation API
 
 ### Ruby version
-Please use Ruby > 3.0. The project is set to use Ruby 3.3.0 by default. If you do not have that version installed, please update the ".ruby-version" file with your preferred version.
+3.3.0
 
 ### Test Coverage
 
-Please write tests using RSpec. It is already included as a dependency when you run "bundle install".
+Just run `rspec -f d`
 
 ### Setup
 
-Run the following script using your shortname to set up your working branch:
+This app doesn't use any database, so, just install ruby version and run `bundle install`
 
-```bash
-bin/setup-repo.sh <shortname>
-```
+Then run the server using `rails s`
 
-For instance, if your name is John Smith, your shortname would be jsmith.
+To run the ABN external validator server, just execute the script `bin/abn_query_server.rb` in another terminal.
 
-Ensure that you are ready to start by running "rails spec" or "rails s".
+To make it work use Postman or your favourite software to make Rest Calls and just make a POST call using these options
 
-### Next Steps
-Get started with "PT1: Basic Format" and complete as much as you can through "PT3: External Validation", in order. Have fun!
+URL: `http://localhost:3000/tin_validations`
 
-### Finishing Up and Submitting Your Work
+Headers: `Content-Type: application/json`
 
-Once you have completed the interview, please run the following script and submit the tarball named in the script output back to Recurly.
-
-```bash
-bin/finish-interview.sh
-```
-
-### Thank You
-
-Thank you for your time completing this interview!
+Body (example): `{"tin_validation": {"country": "AU", "number": "10000000000"}}`
