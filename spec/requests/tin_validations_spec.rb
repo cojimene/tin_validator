@@ -47,6 +47,14 @@ RSpec.describe 'TinValidations', type: :request do
       expect(parsed_response['tin_type']).to eq('au_acn')
     end
 
+    it 'responses valid with a number like NNN N NN NNN' do
+      post '/tin_validations', params: {tin_validation: {country: 'AU', number: '101 2 00 000'}}
+
+      expect(parsed_response['valid']).to eq(true)
+      expect(parsed_response['formatted_tin']).to eq('101 200 000')
+      expect(parsed_response['tin_type']).to eq('au_acn')
+    end
+
     context 'when is an ABN number' do
       let(:abn_external) { instance_double(AbnExternalValidator) }
       before { allow(AbnExternalValidator).to receive(:call).and_return(abn_external) }
@@ -91,8 +99,8 @@ RSpec.describe 'TinValidations', type: :request do
       end
     end
 
-    it 'responses errors with any other format not ABN' do
-      post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10 120 0000 004'}}
+    it 'responses errors with any other format nor ABN' do
+      post '/tin_validations', params: {tin_validation: {country: 'AU', number: '10 120 0000 0045'}}
 
       expect(parsed_response['valid']).to eq(false)
       expect(parsed_response['errors']).to include('invalid number')

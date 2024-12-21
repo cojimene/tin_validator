@@ -6,7 +6,7 @@ class TinValidator < ApplicationService
 
   def initialize(country, number)
     @country = country
-    @number = number.to_s
+    @number = number.to_s.gsub(/\s+/, '')
     @valid = false
   end
 
@@ -44,10 +44,7 @@ class TinValidator < ApplicationService
     if @number.match(/\A\d{9}\z/)
       @formatted_number = "#{@number[0..2]} #{@number[3..5]} #{@number[6..8]}"
       @type = 'au_acn'
-    elsif @number.match(/\A\d{3} \d{3} \d{3}\z/)
-      @formatted_number = @number
-      @type = 'au_acn'
-    elsif @number.match(/\A(\d{11}|\d{2} \d{3} \d{3} \d{3})\z/)
+    elsif @number.match(/\A\d{11}\z/)
       # validate_abn_from_local
       validate_abn_from_external_server
     else
@@ -66,20 +63,18 @@ class TinValidator < ApplicationService
   def validate_abn_from_local
     number = "#{(@number[0].to_i - 1)}#{@number[1..]}" # rest 1 from the first digit
     total = 0
-    # sum the products digits*weigth
+    # sum the products digits multiplied by its corresponding weigth
     number.chars.each_with_index do |d, i|
       total += d.to_i * ABN_WEIGHTS[i]
     end
 
     if (total % ABN_MODULUS) == 0
-      @number.gsub!(/\s+/, '')
       @formatted_number = "#{@number[0..1]} #{@number[2..4]} #{@number[5..7]} #{@number[8..10]}"
       @type = 'au_abn'
     end
   end
 
   def validate_abn_from_external_server
-    @number.gsub!(/\s+/, '')
     validator = AbnExternalValidator.call(@number)
 
     if validator.error
